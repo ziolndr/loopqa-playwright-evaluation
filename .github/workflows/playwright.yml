@@ -1,0 +1,39 @@
+name: Playwright board acceptance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Validate scenario data
+        run: npm run test:data
+      - name: Validate JavaScript syntax
+        run: npm run typecheck
+      - name: Run end-to-end tests
+        run: npm test
+        env:
+          DEMO_BASE_URL: ${{ vars.DEMO_BASE_URL || 'https://create-asana-like-pr-39y5.bolt.host/' }}
+          DEMO_USERNAME: ${{ secrets.DEMO_USERNAME || 'admin' }}
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD || 'password123' }}
+      - name: Upload HTML report and failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
